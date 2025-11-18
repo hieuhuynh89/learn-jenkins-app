@@ -45,14 +45,31 @@ pipeline {
                 }
             }
 
-            steps {
-                sh '''
-                    npm install serve
-                    node_module/.bin/serve -s build & 
-                    sleep 10
-                    npx playwright test
-                '''
-            }
+                        steps {
+                                sh '''
+                                        ls -la build
+                                        # ensure node deps are available in this container
+                                        npm ci --no-audit --no-fund || true
+                                        npm install --no-audit --no-fund serve
+
+                                        # start a stable static server on port 3000 and capture logs
+                                        npx serve -s build -l 3000 > serve.log 2>&1 &
+
+                                        # wait for the server to become available (max ~30s)
+                                        for i in $(seq 1 30); do
+                                            if curl -sSf http://localhost:3000 >/dev/null 2>&1; then
+                                                echo "server is up"
+                                                break
+                                            fi
+                                            sleep 1
+                                        done
+
+                                        # show last lines of serve log for debugging
+                                        tail -n 200 serve.log || true
+
+                                        npx playwright test
+                                '''
+                        }
 
         }
     }
