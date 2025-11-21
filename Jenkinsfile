@@ -37,7 +37,6 @@ pipeline {
         }
 
         stage('E2E') {
-
             agent {
                 docker {
                     image 'mcr.microsoft.com/playwright:v1.39.0-jammy'
@@ -45,8 +44,8 @@ pipeline {
                 }
             }
 
-                        steps {
-                                sh '''
+            steps {
+                sh '''
                                         ls -la build
                                         # ensure node deps are available in this container
                                         npm ci --no-audit --no-fund || true
@@ -69,8 +68,7 @@ pipeline {
 
                                         npx playwright test
                                 '''
-                        }
-
+            }
         }
     }
 
