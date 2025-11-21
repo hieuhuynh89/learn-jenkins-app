@@ -66,7 +66,7 @@ pipeline {
                                         # show last lines of serve log for debugging
                                         tail -n 200 serve.log || true
 
-                                        npx playwright test
+                                        npx playwright test --reporter=line
                                 '''
             }
         }
