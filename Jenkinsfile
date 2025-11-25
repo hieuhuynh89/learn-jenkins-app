@@ -41,7 +41,7 @@ pipeline {
                     }
                     post {
                         always {
-                            junit 'test-results/junit.xml'
+                            junit 'jest-results/junit.xml'
                         }
                     }
                 }
@@ -88,13 +88,6 @@ pipeline {
                     }
                 }
             }
-        }
-    }
-
-    post {
-        always {
-            // collect jest junit results produced by jest-junit (package.json config)
-            junit 'test-results/junit.xml'
         }
     }
 }
