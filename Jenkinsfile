@@ -11,13 +11,12 @@ pipeline {
             }
             steps {
                 sh '''
-                    set -e
                     ls -la
                     node --version
                     npm --version
-                    npm ci --no-audit --no-fund
+                    npm ci
                     npm run build
-                    ls -la build
+                    ls -la
                 '''
             }
         }
@@ -33,10 +32,7 @@ pipeline {
                     }
                     steps {
                         sh '''
-                            set -e
-                            test -f build/index.html
-                            npm ci --no-audit --no-fund || true
-                            CI=true npm test -- --watchAll=false
+                            npm test
                         '''
                     }
                     post {
@@ -55,30 +51,10 @@ pipeline {
                     }
                     steps {
                         sh '''
-                            set -e
-                            test -f build/index.html
-
-                            # ensure dependencies are present
-                            npm ci --no-audit --no-fund || true
-                            npm install --no-audit --no-fund serve || true
-
-                            # start a stable static server on port 3000 and capture logs
-                            npx serve -s build -l 3000 > serve.log 2>&1 &
-
-                            # wait for the server to become available (max ~30s)
-                            for i in $(seq 1 30); do
-                              if curl -sSf http://localhost:3000 >/dev/null 2>&1; then
-                                echo "server is up"
-                                break
-                              fi
-                              sleep 1
-                            done
-
-                            # show last lines of serve log for debugging
-                            tail -n 200 serve.log || true
-
-                            # run playwright tests
-                            npx playwright test
+                           npm install serve
+                            node_modules/.bin/serve -s build &
+                            sleep 10
+                            npx playwright test  --reporter=html
                         '''
                     }
                     post {
