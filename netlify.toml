@@ -1,0 +1,4 @@
+[build]
+  # Skip Netlify's build since Jenkins already built the app
+  command = "echo 'Build skipped - using pre-built artifacts'"
+  publish = "build"
