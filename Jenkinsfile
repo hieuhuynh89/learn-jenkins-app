@@ -93,7 +93,7 @@ pipeline {
                     npx netlify status --auth=$NETLIFY_AUTH_TOKEN || true
 
                     # Direct deploy of pre-built artifacts. This uploads build/ contents directly.
-                    npx netlify deploy --dir=build--site=$NETLIFY_SITE_ID --auth=$NETLIFY_AUTH_TOKEN --message="Deployed by Jenkins build $BUILD_NUMBER"
+                    npx netlify deploy --dir=build --site=$NETLIFY_SITE_ID --auth=$NETLIFY_AUTH_TOKEN --message="Deployed by Jenkins build $BUILD_NUMBER"
                 '''
             }
         }
