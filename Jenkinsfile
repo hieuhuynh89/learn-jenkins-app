@@ -16,6 +16,7 @@ pipeline {
             }
             steps {
                 sh '''
+                    echo "add small changes to force rebuild"
                     ls -la
                     node --version
                     npm --version
