@@ -80,11 +80,18 @@ pipeline {
             }
             steps {
                 sh '''
-                    npm install netlify-cli
-                    node_modules/.bin/netlify --version
-                    echo "Deploying to Netlify site ID: $NETLIFY_SITE_ID"
-                    node_modules/.bin/netlify status
-                    node_modules/.bin/netlify deploy --dir=build --prod --auth=$NETLIFY_AUTH_TOKEN --site=$NETLIFY_SITE_ID
+                    set -e
+                    echo "Deploying to Netlify site ID: $NETLIFY_SITE_ID using netlify-cli"
+                    # install netlify-cli locally (cache may speed this up)
+                    npm ci --no-audit --no-fund || true
+                    npm install --no-audit --no-fund netlify-cli
+                    npx netlify --version
+
+                    # show current site/project info
+                    npx netlify status --auth=$NETLIFY_AUTH_TOKEN || true
+
+                    # Direct deploy of pre-built artifacts. This uploads build/ contents directly.
+                    npx netlify deploy --dir=build --prod --site=$NETLIFY_SITE_ID --auth=$NETLIFY_AUTH_TOKEN --message="Deployed by Jenkins build $BUILD_NUMBER"
                 '''
             }
         }
