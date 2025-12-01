@@ -65,14 +65,14 @@ pipeline {
                     }
                     post {
                         always {
-                            publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, icon: '', keepAll: false, reportDir: 'playwright-report', reportFiles: 'index.html', reportName: 'Playwright HTML Report', reportTitles: '', useWrapperFileDirectly: true])
+                            publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, icon: '', keepAll: false, reportDir: 'playwright-report', reportFiles: 'index.html', reportName: 'Playwright Local', reportTitles: '', useWrapperFileDirectly: true])
                         }
                     }
                 }
             }
         }
 
-        stage('Deploy') {
+        stage('Deploy staging') {
             agent {
                 docker {
                     //image 'node:18-alpine'
@@ -83,7 +83,33 @@ pipeline {
             steps {
                 sh '''
                     set -e
-                    echo "Deploying to Netlify site ID: $NETLIFY_SITE_ID using netlify-cli"
+                    echo "Deploying staging to Netlify site ID: $NETLIFY_SITE_ID using netlify-cli"
+                    # install netlify-cli locally (cache may speed this up)
+                    npm ci --no-audit --no-fund || true
+                    npm install --no-audit --no-fund netlify-cli
+                    npx netlify --version
+
+                    # show current site/project info
+                    npx netlify status --auth=$NETLIFY_AUTH_TOKEN || true
+
+                    # Direct deploy of pre-built artifacts. This uploads build/ contents directly.
+                    npx netlify deploy --dir=build--site=$NETLIFY_SITE_ID --auth=$NETLIFY_AUTH_TOKEN --message="Deployed by Jenkins build $BUILD_NUMBER"
+                '''
+            }
+        }
+
+        stage('Deploy prod') {
+            agent {
+                docker {
+                    //image 'node:18-alpine'
+                    image 'node:18-bullseye'
+                    reuseNode true
+                }
+            }
+            steps {
+                sh '''
+                    set -e
+                    echo "Deploying prod to Netlify site ID: $NETLIFY_SITE_ID using netlify-cli"
                     # install netlify-cli locally (cache may speed this up)
                     npm ci --no-audit --no-fund || true
                     npm install --no-audit --no-fund netlify-cli
@@ -95,6 +121,30 @@ pipeline {
                     # Direct deploy of pre-built artifacts. This uploads build/ contents directly.
                     npx netlify deploy --dir=build --prod --site=$NETLIFY_SITE_ID --auth=$NETLIFY_AUTH_TOKEN --message="Deployed by Jenkins build $BUILD_NUMBER"
                 '''
+            }
+        }
+
+        stage('Prod E2E') {
+            agent {
+                docker {
+                    image 'mcr.microsoft.com/playwright:v1.39.0-jammy'
+                    reuseNode true
+                }
+            }
+
+            environment {
+                CI_ENVIRONMENT_URL = 'https://hieuhuynh-learning-jenkins.netlify.app/'
+            }
+
+            steps {
+                sh '''
+                    npx playwright test  --reporter=html
+                    '''
+            }
+            post {
+                always {
+                    publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, icon: '', keepAll: false, reportDir: 'playwright-report', reportFiles: 'index.html', reportName: 'Playwright HTML Report', reportTitles: '', useWrapperFileDirectly: true])
+                }
             }
         }
     }
