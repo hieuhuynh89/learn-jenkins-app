@@ -86,21 +86,53 @@ pipeline {
                     echo "Deploying staging to Netlify site ID: $NETLIFY_SITE_ID using netlify-cli"
                     # install netlify-cli locally (cache may speed this up)
                     npm ci --no-audit --no-fund || true
-                    npm install --no-audit --no-fund netlify-cli
+                    npm install --no-audit --no-fund netlify-cli node-jq
                     npx netlify --version
 
                     # show current site/project info
                     npx netlify status --auth=$NETLIFY_AUTH_TOKEN || true
 
                     # Direct deploy of pre-built artifacts. This uploads build/ contents directly.
-                    npx netlify deploy --dir=build --site=$NETLIFY_SITE_ID --auth=$NETLIFY_AUTH_TOKEN --message="Deployed by Jenkins build $BUILD_NUMBER"
+                    npx netlify deploy --dir=build ---json > deploy-output.json
+                    node_modules/.bin/node-jq -r '.deploy_url' deploy-output.json
                 '''
+            }
+
+            script {
+                env.STAGING_URL = sh(script: "node_modules/.bin/node-jq -r '.deploy_url' deploy-output.json", returnStdout: true).trim()
+            }
+        }
+
+        stage('Staging E2E') {
+            agent {
+                docker {
+                    image 'mcr.microsoft.com/playwright:v1.39.0-jammy'
+                    reuseNode true
+                }
+            }
+
+            environment {
+                CI_ENVIRONMENT_URL = "${env.STAGING_URL}"
+            }
+
+            steps {
+                sh '''
+                    npx playwright test  --reporter=html
+                    '''
+            }
+            post {
+                always {
+                    publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, icon: '', keepAll: false, reportDir: 'playwright-report', reportFiles: 'index.html', reportName: 'Staging E2E', reportTitles: '', useWrapperFileDirectly: true])
+                }
             }
         }
 
         stage('Approval'){
             steps {
-                input message: 'Are you ready to Deploy', ok: 'Yes, I\'m ok to Deploy'
+                timeout(time: 15, unit: 'MINUTES') {
+                     input message: 'Are you ready to Deploy', ok: 'Yes, I\'m ok to Deploy'
+                }
+               
             }
         }
 
@@ -149,7 +181,7 @@ pipeline {
             }
             post {
                 always {
-                    publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, icon: '', keepAll: false, reportDir: 'playwright-report', reportFiles: 'index.html', reportName: 'Playwright HTML Report', reportTitles: '', useWrapperFileDirectly: true])
+                    publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, icon: '', keepAll: false, reportDir: 'playwright-report', reportFiles: 'index.html', reportName: 'Prod E2E', reportTitles: '', useWrapperFileDirectly: true])
                 }
             }
         }
