@@ -93,7 +93,7 @@ pipeline {
                     npx netlify status --auth=$NETLIFY_AUTH_TOKEN || true
 
                     # Direct deploy of pre-built artifacts. This uploads build/ contents directly.
-                    npx netlify deploy --dir=build ---json > deploy-output.json
+                    npx netlify deploy --dir=build --json > deploy-output.json
                     node_modules/.bin/node-jq -r '.deploy_url' deploy-output.json
                 '''
                 script {
