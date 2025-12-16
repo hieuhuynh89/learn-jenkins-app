@@ -24,8 +24,12 @@ pipeline {
                     npm ci
                     echo "REACT_APP_VERSION=${REACT_APP_VERSION}"
                     export REACT_APP_VERSION="${REACT_APP_VERSION}"
+                    # ensure no stale build artifacts are used
+                    rm -rf build || true
                     npm run build
-                    ls -la
+                    ls -la build || true
+                    # quick verification that the built bundle contains the expected version
+                    grep -R "Application version" build/static/js || true
                 '''
             }
         }
