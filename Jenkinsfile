@@ -12,6 +12,9 @@ pipeline {
             steps {
                 sh '''
                     docker build -t my-playwright-netlify-app .
+                    echo "Docker image built:"
+                    pwd
+                    docker images
                 '''
             }
         }
